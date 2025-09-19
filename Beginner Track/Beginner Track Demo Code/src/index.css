@@ -1,0 +1,166 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* SkyMarket Design System */
+:root {
+  /* SkyMarket Color System */
+  --background: 0 0% 100%;
+  --foreground: 0 0% 0%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 0%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 0%;
+  
+  /* SkyMarket Brand Colors */
+  --primary: 0 0% 0%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 29.4%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 90.2%;
+  --muted-foreground: 0 0% 29.4%;
+  
+  /* SkyMarket Accent - Red #BD1B04 */
+  --accent: 10 95% 38%;
+  --accent-foreground: 0 0% 100%;
+  
+  /* Status Colors */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --success: 158 64% 52%;
+  --warning: 43 89% 38%;
+  --info: 207 90% 54%;
+  
+  /* Interface Elements */
+  --border: 0 0% 90.2%;
+  --input: 0 0% 90.2%;
+  --ring: 10 95% 38%;
+  
+  /* Shadows & Effects */
+  --shadow-card: 0 2px 8px hsl(0 0% 0% / 0.04);
+  --shadow-hover: 0 4px 12px hsl(0 0% 0% / 0.08);
+  --shadow-modal: 0 8px 24px hsl(0 0% 0% / 0.12);
+  --shadow-fab: 0 4px 16px hsl(10 95% 38% / 0.24);
+  --shadow-focus: 0 0 0 2px hsl(var(--ring));
+  --shadow-glow: 0 0 40px hsl(10 95% 38% / 0.15);
+  
+  --radius: 0.5rem;
+}
+
+  .dark {
+    /* SkyMarket Dark Mode */
+    --background: 0 0% 4%;
+    --foreground: 0 0% 100%;
+    --card: 0 0% 4%;
+    --card-foreground: 0 0% 100%;
+    --popover: 0 0% 4%;
+    --popover-foreground: 0 0% 100%;
+    
+    --primary: 0 0% 100%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 16.5%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 16.5%;
+    --muted-foreground: 0 0% 65%;
+    
+    /* Brighter accent for dark mode */
+    --accent: 10 100% 58%;
+    --accent-foreground: 0 0% 100%;
+    
+    --destructive: 0 62% 31%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 158 64% 52%;
+    --warning: 43 89% 38%;
+    --info: 207 90% 54%;
+    
+    --border: 0 0% 16.5%;
+    --input: 0 0% 16.5%;
+    --ring: 10 100% 58%;
+    
+    /* Dark mode shadows become glows */
+    --shadow-card: 0 0 8px hsl(10 100% 58% / 0.1);
+    --shadow-hover: 0 0 12px hsl(10 100% 58% / 0.15);
+    --shadow-modal: 0 0 24px hsl(10 100% 58% / 0.2);
+    --shadow-fab: 0 0 16px hsl(10 100% 58% / 0.3);
+    --shadow-focus: 0 0 0 2px hsl(var(--ring));
+    --shadow-glow: 0 0 40px hsl(10 100% 58% / 0.3);
+  }
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    line-height: 1.4;
+  }
+  
+  /* SkyMarket Typography */
+  h1 {
+    @apply text-[28px] font-bold tracking-[-0.5px];
+  }
+  
+  h2 {
+    @apply text-[22px] font-semibold;
+  }
+}
+
+@layer utilities {
+  /* Card shadows using CSS variables */
+  .card-shadow {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .card-shadow:hover {
+    box-shadow: var(--shadow-hover);
+  }
+  
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+  
+  .shadow-hover {
+    box-shadow: var(--shadow-hover);
+  }
+  
+  .shadow-modal {
+    box-shadow: var(--shadow-modal);
+  }
+  
+  .shadow-fab {
+    box-shadow: var(--shadow-fab);
+  }
+  
+  /* Animations */
+  @keyframes slideUp {
+    from {
+      transform: translateY(10px);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  .animate-slide-up {
+    animation: slideUp 300ms ease-out;
+  }
+  
+  .animate-fade-in {
+    animation: fadeIn 200ms ease-in;
+  }
+}
