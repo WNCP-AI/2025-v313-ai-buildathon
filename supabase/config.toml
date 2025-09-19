@@ -1,0 +1,25 @@
+project_id = "fdqaiwugmumcqfolksrp"
+
+[functions.send-booking-notification]
+verify_jwt = true
+
+[functions.send-status-notification]
+verify_jwt = true
+
+[functions.send-test-email]
+verify_jwt = true
+
+[functions.generate-ai-content]
+verify_jwt = false
+
+[functions.admin-data]
+verify_jwt = true
+
+[functions.generate-listing-images]
+verify_jwt = false
+
+[functions.generate-profile-images]
+verify_jwt = false
+
+[functions.repair-listing-profiles]
+verify_jwt = false
