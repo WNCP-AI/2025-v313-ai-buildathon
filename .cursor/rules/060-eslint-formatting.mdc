@@ -1,0 +1,9 @@
+---
+description: ESLint and formatting
+---
+## Linting & Formatting
+
+- ESLint config extends Next core web vitals and TS: [`eslint.config.mjs`](mdc:eslint.config.mjs)
+- Follow project's Prettier style: respect existing formatting; no auto reflows
+- Avoid unused vars/imports; prefer explicit return types for exported functions
+- Do not disable rules inline unless justified; fix root cause

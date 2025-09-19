@@ -1,0 +1,17 @@
+---
+alwaysApply: true
+---
+## Skymarket Project Structure
+
+- Entry: `app/layout.tsx` and route segments under `app/*`
+- API & middleware: `app/api/*`, `middleware.ts`
+- Supabase SQL: [`supabase/schema.sql`](mdc:supabase/schema.sql), migrations in `supabase/migrations/*`
+- Types: [`types/database.ts`](mdc:types/database.ts)
+- Utilities: [`lib/utils.ts`](mdc:lib/utils.ts)
+- UI: `components/**` with `components/layout/SiteHeader.tsx`
+- Config: [`package.json`](mdc:package.json), [`tsconfig.json`](mdc:tsconfig.json), [`eslint.config.mjs`](mdc:eslint.config.mjs)
+
+Conventions:
+- Use absolute imports via `@/*` (see `tsconfig.json` paths)
+- Prefer Server Components by default; mark client with `'use client'`
+- Keep routes colocated: e.g., `app/browse/[category]/page.tsx`

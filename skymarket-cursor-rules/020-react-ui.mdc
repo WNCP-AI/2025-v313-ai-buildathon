@@ -1,0 +1,396 @@
+---
+description: React component and UI development patterns using shadcn/ui, Tailwind CSS, and Next.js 14
+globs: 
+  - "components/**/*"
+  - "app/**/*.tsx"
+  - "**/*.tsx"
+alwaysApply: false
+---
+
+# React UI Development Rules
+
+## Component Structure Standards
+
+### Component File Organization
+Organize components by feature/domain:
+```
+components/
+├── ui/                 # shadcn/ui components
+├── forms/              # Form components
+├── layout/             # Layout components
+├── booking/            # Booking-specific components
+├── maps/               # Map-related components
+└── providers/          # Provider profiles and listings
+```
+
+### Component Naming Conventions
+- Use PascalCase for component files: `BookingForm.tsx`, `UserProfile.tsx`
+- Use descriptive names that indicate purpose: `ServiceCard` not `Card`
+- Use `index.ts` files for component exports
+- Group related components in folders: `booking/BookingCard.tsx`
+
+### Component Structure Template
+```typescript
+// components/ServiceCard.tsx
+import { FC } from 'react';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import type { ServiceListing } from '@/types/listing';
+
+interface ServiceCardProps {
+  listing: ServiceListing;
+  onBook?: (listing: ServiceListing) => void;
+}
+
+export const ServiceCard: FC<ServiceCardProps> = ({ listing, onBook }) => {
+  return (
+    <Card>
+      <CardHeader>
+        <h3>{listing.title}</h3>
+      </CardHeader>
+      <CardContent>
+        {/* content */}
+      </CardContent>
+    </Card>
+  );
+};
+```
+
+## shadcn/ui Component Usage
+
+### Importing Components
+Always import from the correct path:
+```typescript
+// Good
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+
+// Bad - don't import from external
+import { Button } from '@radix-ui/react-button';
+```
+
+### Common Component Patterns
+
+#### Forms with shadcn/ui
+```typescript
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+
+const formSchema = z.object({
+  address: z.string().min(1, "Address is required"),
+  scheduledDate: z.date(),
+  instructions: z.string().max(500).optional()
+});
+```
+
+#### Layout Components
+```typescript
+// Use shadcn/ui layout components consistently
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+
+// Use shadcn/ui spacing utilities
+import { cn } from '@/lib/utils';
+```
+
+## Tailwind CSS Patterns
+
+### Responsive Design
+Use Tailwind's responsive prefixes consistently:
+```typescript
+// Mobile-first approach
+<div className="p-4 md:p-6 lg:p-8">
+  <h1 className="text-xl md:text-2xl lg:text-3xl">
+    Service Title
+  </h1>
+</div>
+```
+
+### Detroit Brand Color Palette
+Use consistent colors throughout the application:
+```typescript
+// Primary colors
+bg-red-600          // SkyMarket primary red
+bg-red-700          // Hover states
+bg-blue-600         // Secondary blue for Detroit
+bg-gray-50          // Light backgrounds
+bg-gray-100         // Card backgrounds
+
+// Text colors
+text-gray-900       // Primary text
+text-gray-700       // Secondary text
+text-gray-500       // Muted text
+text-red-600        // Error states
+```
+
+### Spacing Standards
+Use consistent spacing scale:
+```typescript
+// Component spacing
+gap-4               // 1rem between elements
+space-y-4           // Vertical spacing
+p-4                 // Internal padding 1rem
+m-4                 // External margin 1rem
+
+// Grid layouts
+grid-cols-1 md:grid-cols-2 lg:grid-cols-3
+```
+
+## Form Development
+
+### Form Field Standards
+```typescript
+// Address input with Detroit validation
+<FormField
+  control={form.control}
+  name="address"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel>Delivery Address</FormLabel>
+      <FormControl>
+        <Input 
+          placeholder="123 Main St, Detroit, MI"
+          {...field}
+        />
+      </FormControl>
+      <FormDescription>
+        Enter a Detroit Metro address for service
+      </FormDescription>
+      <FormMessage />
+    </FormItem>
+  )}
+/>
+```
+
+### Form Validation Patterns
+```typescript
+// Use Zod validation with Detroit-specific rules
+const addressSchema = z.object({
+  street: z.string().min(1, "Street address required"),
+  city: z.string().refine(val => val.toLowerCase().includes('detroit'), {
+    message: "Service only available in Detroit Metro"
+  }),
+  zip: z.string().regex(/^48[2-3]\d{3}$/, "Valid Detroit ZIP required")
+});
+```
+
+## Map Components
+
+### Mapbox Integration
+Use consistent map component structure:
+```typescript
+// components/maps/ServiceMap.tsx
+import Map, { Marker, Source, Layer } from 'react-map-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+
+const DETROIT_CENTER = {
+  latitude: 42.3314,
+  longitude: -83.0458,
+  zoom: 11
+};
+
+interface ServiceMapProps {
+  providers: Provider[];
+  userLocation?: Coordinates;
+  onProviderSelect?: (provider: Provider) => void;
+}
+
+export const ServiceMap: FC<ServiceMapProps> = ({
+  providers,
+  userLocation,
+  onProviderSelect
+}) => {
+  return (
+    <Map
+      mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
+      initialViewState={DETROIT_CENTER}
+      style={{ width: '100%', height: '100%' }}
+      mapStyle="mapbox://styles/mapbox/light-v11"
+    >
+      {/* Service area polygons */}
+      <Source type="geojson" data={serviceAreaGeoJSON}>
+        <Layer
+          type="fill"
+          paint={{ 'fill-color': '#BD1B04', 'fill-opacity': 0.1 }}
+        />
+      </Source>
+      
+      {/* Provider markers */}
+      {providers.map(provider => (
+        <Marker
+          key={provider.id}
+          latitude={provider.location.lat}
+          longitude={provider.location.lng}
+          anchor="bottom"
+        >
+          <div className="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
+            <DroneIcon className="w-4 h-4 text-white" />
+          </div>
+        </Marker>
+      ))}
+    </Map>
+  );
+};
+```
+
+## Responsive Design Patterns
+
+### Mobile-First Components
+```typescript
+// Responsive service card
+<div className="w-full max-w-md mx-auto md:max-w-none">
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    {/* Service cards */}
+  </div>
+</div>
+```
+
+### Responsive Forms
+```typescript
+// Booking form responsive layout
+<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+  <div className="md:col-span-1">
+    <FormField name="pickup" />
+  </div>
+  <div className="md:col-span-1">
+    <FormField name="dropoff" />
+  </div>
+  <div className="md:col-span-2">
+    <FormField name="instructions" />
+  </div>
+</div>
+```
+
+## Loading States
+
+### Skeleton Loading
+Use shadcn/ui skeleton components for loading states:
+```typescript
+import { Skeleton } from '@/components/ui/skeleton';
+
+const ServiceCardSkeleton = () => (
+  <Card>
+    <CardHeader>
+      <Skeleton className="h-4 w-[250px]" />
+      <Skeleton className="h-4 w-[200px]" />
+    </CardHeader>
+    <CardContent>
+      <Skeleton className="h-20 w-full" />
+      <div className="flex justify-between mt-4">
+        <Skeleton className="h-8 w-24" />
+        <Skeleton className="h-8 w-32" />
+      </div>
+    </CardContent>
+  </Card>
+);
+```
+
+### Loading Boundaries
+Use Next.js 14 loading patterns:
+```typescript
+// app/loading.tsx
+import { Skeleton } from '@/components/ui/skeleton';
+
+export default function Loading() {
+  return (
+    <div className="container mx-auto p-4">
+      <Skeleton className="h-8 w-48 mb-4" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {[...Array(6)].map((_, i) => (
+          <ServiceCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
+  );
+}
+```
+
+## Error Handling UI
+
+### Error States
+```typescript
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+
+const ErrorState = ({ error, onRetry }: ErrorStateProps) => (
+  <Alert variant="destructive">
+    <AlertTitle>Error</AlertTitle>
+    <AlertDescription>
+      {error.message || "Something went wrong. Please try again."}
+    </AlertDescription>
+    {onRetry && (
+      <Button 
+        variant="outline" 
+        size="sm" 
+        onClick={onRetry}
+        className="mt-2"
+      >
+        Try Again
+      </Button>
+    )}
+  </Alert>
+);
+```
+
+## Accessibility Standards
+
+### ARIA Labels
+```typescript
+// Accessible button
+<Button 
+  aria-label="Book drone service for ${listing.title}"
+  onClick={handleBooking}
+>
+  Book Service
+</Button>
+
+// Accessible form fields
+<FormField
+  name="address"
+  render={({ field }) => (
+    <FormItem>
+      <FormLabel htmlFor="address">Delivery Address</FormLabel>
+      <FormControl>
+        <Input 
+          id="address"
+          aria-required="true"
+          {...field}
+        />
+      </FormControl>
+    </FormItem>
+  )}
+/>
+```
+
+### Keyboard Navigation
+Ensure all interactive elements are keyboard accessible:
+```typescript
+// Keyboard navigation for service selection
+<div 
+  tabIndex={0}
+  role="button"
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      handleSelect();
+    }
+  }}
+  className="focus:outline-none focus:ring-2 focus:ring-red-500"
+>
+  {/* content */}
+</div>
+```

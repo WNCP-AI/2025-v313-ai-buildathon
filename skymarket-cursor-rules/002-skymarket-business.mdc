@@ -1,0 +1,182 @@
+---
+description: SkyMarket business domain rules for marketplace logic, user roles, and Detroit-specific operations
+globs: []
+alwaysApply: true
+---
+
+# SkyMarket Business Domain Rules
+
+## Marketplace Core Concepts
+
+### User Roles and Permissions
+- **Consumer**: Books drone services, makes payments, tracks orders
+- **Provider**: Lists services, accepts bookings, completes deliveries
+- **Admin**: Platform management, user moderation, analytics access
+
+### Service Categories
+SkyMarket supports exactly 4 service categories:
+1. **food_delivery**: Restaurant and food delivery via drone
+2. **courier**: Package and document delivery
+3. **aerial_imaging**: Photography, videography, inspection services
+4. **site_mapping**: Surveying, construction site mapping, real estate
+
+### Booking Flow States
+All bookings follow this state machine:
+```
+pending → accepted → in_progress → completed
+    ↓         ↓           ↓
+cancelled  cancelled  cancelled
+```
+
+## Detroit Geographic Rules
+
+### Service Area Boundaries
+- All operations must be within Detroit Metro bounds
+- Validate coordinates against Detroit boundaries:
+  ```typescript
+  function isWithinDetroitMetro(lat: number, lng: number): boolean {
+    return lat >= 42.0 && lat <= 42.6 && lng >= -83.5 && lng <= -82.8;
+  }
+  ```
+
+### Detroit Neighborhoods
+Use these standardized neighborhood names:
+- Downtown Detroit
+- Midtown
+- Corktown
+- Eastern Market
+- Belle Isle
+- Riverfront
+- New Center
+- Southwest Detroit
+- Hamtramck
+- Highland Park
+
+### Default Locations
+- Map center: `{ lat: 42.3314, lng: -83.0458 }` (Downtown Detroit)
+- Default service radius: 10 miles from Detroit center
+- Airport restrictions: 5-mile radius around Detroit City Airport (DET)
+
+## Pricing and Payment Rules
+
+### Price Structure
+All services use consistent pricing model:
+```typescript
+interface ServicePrice {
+  base: number;           // Base service fee
+  perMile?: number;      // Optional per-mile rate
+  perMinute?: number;    // Optional per-minute rate
+}
+```
+
+### Platform Fees
+- SkyMarket charges 15% platform fee on all transactions
+- Providers receive 85% of booking value
+- Fees are handled automatically through Stripe Connect
+
+### Payment Flow
+1. Create Stripe PaymentIntent on booking creation
+2. Hold funds in escrow during service delivery
+3. Release payment to provider on completion
+4. Handle refunds for cancelled bookings
+
+## Compliance and Safety Rules
+
+### Drone Operations
+For drone service providers:
+- Must verify FAA Part-107 certification
+- Check LAANC airspace authorization for controlled airspace
+- Validate weather conditions before flight approval
+- Maximum altitude: 400 feet AGL (Above Ground Level)
+
+### Validation Checks
+Implement these safety validations:
+```typescript
+function validateDroneOperation(location: Coordinates): ValidationResult {
+  // Check Detroit City Airport restrictions
+  const detAirport = { lat: 42.4093, lng: -83.0098 };
+  const distanceToAirport = calculateDistance(location, detAirport);
+  
+  if (distanceToAirport < 5) {
+    return { approved: false, reason: "Within airport restricted zone" };
+  }
+  
+  return { approved: true };
+}
+```
+
+## Data Validation Standards
+
+### User Input Validation
+Always validate user inputs with Zod schemas:
+```typescript
+const bookingSchema = z.object({
+  listingId: z.string().uuid(),
+  scheduledAt: z.date().min(new Date()),
+  location: z.object({
+    dropoff: z.object({
+      address: z.string().min(1),
+      coords: z.object({
+        lat: z.number().min(42.0).max(42.6),
+        lng: z.number().min(-83.5).max(-82.8)
+      })
+    })
+  }),
+  specialInstructions: z.string().max(500).optional()
+});
+```
+
+### Required Fields
+- All addresses must include Detroit, MI in validation
+- Phone numbers should accept US format: +1 (313) XXX-XXXX
+- Email validation for all user accounts
+- Service areas must be within Detroit Metro bounds
+
+## Messaging and Communication Rules
+
+### In-App Messaging
+- All communication between users goes through platform
+- No direct contact information sharing until booking confirmed
+- Automated notifications for booking status changes
+- Support for media attachments (drone imagery, delivery photos)
+
+### Notification Types
+Send notifications for these events:
+- Booking request received (to provider)
+- Booking accepted/declined (to consumer)
+- Service in progress (to both parties)
+- Service completed (to both parties)
+- Payment processed (to both parties)
+
+## Business Logic Patterns
+
+### Service Discovery
+- Use full-text search for service discovery
+- Filter by category, location radius, and availability
+- Sort by distance, price, or provider rating
+- Implement basic recommendation algorithm
+
+### Provider Verification
+Required for all drone operators:
+- FAA Part-107 certificate verification
+- Insurance documentation
+- Background check completion
+- Equipment inspection records
+
+### Quality Assurance
+- Two-sided rating system (consumers rate providers, providers rate consumers)
+- Automatic suspension for providers with < 3.0 average rating
+- Dispute resolution system for payment issues
+- Photo/video evidence required for completed services
+
+## Operational Hours
+
+### Platform Availability
+- Consumer bookings: 6:00 AM - 10:00 PM Eastern Time
+- Drone operations: Daylight hours only (sunrise to sunset)
+- Support hours: 9:00 AM - 6:00 PM Eastern Time, Monday-Friday
+
+### Scheduling Rules
+- Minimum 1-hour advance booking required
+- Maximum 30-day advance booking allowed
+- Weather-dependent services automatically cancelled in adverse conditions

@@ -1,0 +1,12 @@
+---
+description: Data model hints and enum alignment
+---
+## Data Models
+
+- Align UI enums with SQL enums in [`supabase/schema.sql`](mdc:supabase/schema.sql):
+  - `service_category`: `food_delivery | courier | aerial_imaging | site_mapping`
+  - `provider_type`: `courier | drone`
+  - `booking_status`: `pending | accepted | in_progress | completed | cancelled`
+- Types come from [`types/database.ts`](mdc:types/database.ts); import rather than re-declare
+- Price fields are DECIMAL in DB; convert to numbers in UI with care
+- Use `updated_at` ordering where available; triggers maintain timestamps

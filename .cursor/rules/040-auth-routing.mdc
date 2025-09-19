@@ -1,0 +1,13 @@
+---
+description: Auth, middleware, and routing conventions
+---
+## Auth & Routing
+
+- Middleware delegates to Supabase session updater: [`middleware.ts`](mdc:middleware.ts)
+- Auth section layout: [`app/auth/layout.tsx`](mdc:app/auth/layout.tsx)
+- Dynamic routes: keep params typed and validated (e.g., `app/browse/[category]/page.tsx`)
+
+Guidelines:
+- Protect server actions/route handlers via RLS; never trust client role
+- Use middleware matcher to exclude static assets only
+- For dynamic params, validate against enums from DB (e.g., `service_category`)

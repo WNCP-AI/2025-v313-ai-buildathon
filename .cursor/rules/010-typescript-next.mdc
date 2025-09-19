@@ -1,0 +1,13 @@
+---
+globs: *.ts,*.tsx
+---
+## TypeScript & Next.js Rules
+
+- Use `strict` types; avoid `any`. Export function signatures with explicit types.
+- Prefer async/await with early returns; avoid deep nesting.
+- Client components must start with `'use client'` and avoid Node APIs.
+- Use segment-based routing under `app/*` with `page.tsx`, `layout.tsx`.
+- Server-only code belongs in Server Components, Route Handlers, or `app/api/*`.
+- Imports: prefer `@/` absolute alias (see `tsconfig.json`).
+- Do not swallow errors; log or bubble with context.
+- Keep files focused; extract helpers to `lib/*`.

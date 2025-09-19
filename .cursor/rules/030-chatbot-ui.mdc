@@ -1,0 +1,26 @@
+---
+globs: *.tsx
+description: UI rules for building chatbots with AI Elements and Tailwind
+---
+# Chatbot UI Rules
+
+- Mount a lower-right launcher; lazy load the chat window via `next/dynamic`.
+- Use AI Elements (or stubs) for `Conversation`, `Message`, `Response`.
+- Message layout:
+  - Align user right, assistant left.
+  - Bubble classes: `inline-block max-w-[70%] break-words rounded-2xl px-3 py-2`.
+  - Text wrapper should NOT add background; use `whitespace-pre-wrap` + `break-words`.
+- Input row:
+  - Rounded-full input and send button; disable while streaming.
+  - Include Stop button that aborts with `AbortController`.
+- Keep the component client-safe: no server APIs in client.
+- Persist messages in `localStorage` with a namespaced version key; provide Clear.
+
+## Minimal Components
+```tsx
+// Message
+<Message from={m.role}><MessageContent>{children}</MessageContent></Message>
+
+// Response wrapper inside MessageContent (no card)
+<Response>{text}</Response>
+```

@@ -1,0 +1,317 @@
+---
+description: Convex backend development patterns for SkyMarket real-time database and functions
+globs: 
+  - "convex/**/*"
+  - "**/*.convex.ts"
+alwaysApply: false
+---
+
+# Convex Backend Development Rules
+
+## Schema Definition Standards
+
+### Database Schema Patterns
+Define schemas using Convex's validation library:
+```typescript
+import { defineSchema, defineTable } from "convex/server";
+import { v } from "convex/values";
+
+export default defineSchema({
+  users: defineTable({
+    email: v.string(),
+    role: v.union(v.literal("consumer"), v.literal("provider"), v.literal("admin")),
+    profile: v.object({
+      fullName: v.string(),
+      phone: v.optional(v.string()),
+      detroitZone: v.optional(v.string())
+    })
+  }).index("by_email", ["email"]),
+});
+```
+
+### Required Indexes for SkyMarket
+Always create these indexes for optimal performance:
+- `by_email` for user lookups
+- `by_provider` for provider-specific queries
+- `by_category` for service filtering
+- `by_status` for booking management
+- `search_listings` for full-text search
+
+### Schema Naming Conventions
+- Use camelCase for field names: `userId`, `createdAt`
+- Use descriptive field names: `scheduledAt` instead of `date`
+- Always include `createdAt` and `updatedAt` timestamp fields
+- Use proper unions for enum-like values
+
+## Mutation Patterns
+
+### Standard Mutation Structure
+All mutations should follow this pattern:
+```typescript
+export const createBooking = mutation({
+  args: {
+    listingId: v.id("listings"),
+    location: v.object({
+      dropoff: v.object({
+        address: v.string(),
+        coords: v.object({ lat: v.number(), lng: v.number() })
+      })
+    }),
+    scheduledAt: v.number()
+  },
+  handler: async (ctx, args) => {
+    // 1. Authentication check
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+
+    // 2. Data validation
+    const listing = await ctx.db.get(args.listingId);
+    if (!listing) throw new Error("Listing not found");
+
+    // 3. Business logic validation
+    if (!isWithinDetroitMetro(args.location.dropoff.coords)) {
+      throw new Error("Service area outside Detroit Metro");
+    }
+
+    // 4. Database operations
+    return await ctx.db.insert("bookings", {
+      consumerId: identity.userId,
+      listingId: args.listingId,
+      status: "pending",
+      // ... other fields
+    });
+  }
+});
+```
+
+### Error Handling in Mutations
+- Always check authentication first
+- Validate all required data exists
+- Use descriptive error messages
+- Handle race conditions with optimistic concurrency
+
+### Transaction Patterns
+For operations requiring multiple database changes:
+```typescript
+export const acceptBooking = mutation({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, args) => {
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) throw new Error("Booking not found");
+    
+    if (booking.status !== "pending") {
+      throw new Error("Booking already processed");
+    }
+
+    await ctx.db.patch(args.bookingId, { status: "accepted" });
+    
+    // Send notification
+    await ctx.db.insert("notifications", {
+      userId: booking.consumerId,
+      type: "booking_accepted",
+      bookingId: args.bookingId
+    });
+  }
+});
+```
+
+## Query Patterns
+
+### Standard Query Structure
+```typescript
+export const getBookingsByUser = query({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    return await ctx.db
+      .query("bookings")
+      .withIndex("by_consumer", (q) => q.eq("consumerId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .order("desc")
+      .collect();
+  }
+});
+```
+
+### Search Implementation
+Use Convex search for service discovery:
+```typescript
+export const searchListings = query({
+  args: {
+    query: v.string(),
+    category: v.optional(v.string()),
+    location: v.object({ lat: v.number(), lng: v.number() })
+  },
+  handler: async (ctx, args) => {
+    let results = await ctx.db
+      .query("listings")
+      .withSearchIndex("search_listings", (q) =>
+        q.search("title", args.query)
+      )
+      .filter((q) => q.eq(q.field("active"), true))
+      .collect();
+
+    if (args.category) {
+      results = results.filter(listing => listing.category === args.category);
+    }
+
+    // Sort by distance from user location
+    return results
+      .map(listing => ({
+        ...listing,
+        distance: calculateDistance(args.location, listing.serviceArea.center)
+      }))
+      .sort((a, b) => a.distance - b.distance);
+  }
+});
+```
+
+## Real-time Subscriptions
+
+### Live Booking Updates
+Implement real-time tracking for bookings:
+```typescript
+export const trackBooking = query({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, args) => {
+    const booking = await ctx.db.get(args.bookingId);
+    if (!booking) return null;
+
+    return {
+      status: booking.status,
+      tracking: booking.tracking,
+      estimatedArrival: booking.tracking?.eta,
+      currentLocation: booking.tracking?.currentLocation
+    };
+  }
+});
+```
+
+### Real-time Notifications
+```typescript
+export const getUserNotifications = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    return await ctx.db
+      .query("notifications")
+      .withIndex("by_user", (q) => q.eq("userId", identity.userId))
+      .filter((q) => q.eq(q.field("read"), false))
+      .order("desc")
+      .take(50);
+  }
+});
+```
+
+## Actions for External APIs
+
+### Stripe Integration
+Use actions for external API calls:
+```typescript
+export const createPaymentIntent = action({
+  args: {
+    bookingId: v.id("bookings"),
+    amount: v.number()
+  },
+  handler: async (ctx, args) => {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+    
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: Math.round(args.amount * 100),
+      currency: 'usd',
+      metadata: { bookingId: args.bookingId }
+    });
+
+    await ctx.runMutation(internal.bookings.updatePaymentIntent, {
+      bookingId: args.bookingId,
+      paymentIntentId: paymentIntent.id
+    });
+
+    return { clientSecret: paymentIntent.client_secret };
+  }
+});
+```
+
+## Authentication Patterns
+
+### Role-based Access Control
+```typescript
+const requireRole = (allowedRoles: string[]) => {
+  return async (ctx: QueryCtx | MutationCtx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Unauthorized");
+    
+    const user = await ctx.db.get(identity.userId);
+    if (!user || !allowedRoles.includes(user.role)) {
+      throw new Error("Insufficient permissions");
+    }
+    
+    return user;
+  };
+};
+
+export const adminOnlyMutation = mutation({
+  args: { /* args */ },
+  handler: async (ctx, args) => {
+    await requireRole(['admin'])(ctx);
+    // Admin-only logic here
+  }
+});
+```
+
+## File Storage Patterns
+
+### Image Upload for Drone Services
+```typescript
+export const uploadServiceImage = mutation({
+  args: {
+    storageId: v.string(),
+    bookingId: v.id("bookings")
+  },
+  handler: async (ctx, args) => {
+    const url = await ctx.storage.getUrl(args.storageId);
+    
+    await ctx.db.patch(args.bookingId, {
+      completionImages: [...(booking.completionImages || []), url]
+    });
+
+    return url;
+  }
+});
+```
+
+## Performance Optimization
+
+### Efficient Queries
+- Always use indexes for filtering and sorting
+- Limit results with `.take()` for large datasets
+- Use `.filter()` sparingly on large collections
+- Batch related queries when possible
+
+### Caching Strategies
+- Cache frequently accessed data in queries
+- Use Convex's built-in caching for static data
+- Minimize external API calls in frequently-run queries
+
+### Background Jobs
+Use scheduled functions for background tasks:
+```typescript
+export const cleanupExpiredBookings = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const expiredBookings = await ctx.db
+      .query("bookings")
+      .withIndex("by_status", (q) => q.eq("status", "pending"))
+      .filter((q) => q.lt(q.field("scheduledAt"), Date.now() - 24 * 60 * 60 * 1000))
+      .collect();
+
+    for (const booking of expiredBookings) {
+      await ctx.db.patch(booking._id, { status: "cancelled" });
+    }
+  }
+});
+```
