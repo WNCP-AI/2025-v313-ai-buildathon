@@ -1,0 +1,28 @@
+# Resources folder is now managed as separate subtree in General Resources
+
+# Common OS and editor files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.temp
+
+# Logs
+*.log
+
+# Node modules (if any JavaScript projects are added)
+node_modules/
+
+# Python cache (if any Python projects are added)
+__pycache__/
+*.pyc
+*.pyo
+
+# Build outputs
+dist/
+build/
