@@ -1,0 +1,10 @@
+---
+globs: *.tsx
+---
+## Styling
+
+- Tailwind v4 is configured (see `postcss.config.mjs` and `globals.css`)
+- Use the `cn` helper from [`lib/utils.ts`](mdc:lib/utils.ts) to merge classes
+- Prefer semantic wrappers and composable primitives (Radix UI)
+- Keep component class names small; extract variants with `class-variance-authority`
+- Avoid inline styles; prefer Tailwind utilities and CSS variables in `globals.css`

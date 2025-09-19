@@ -1,0 +1,39 @@
+---
+globs: *.ts,*.tsx
+description: Guidance for using Vercel AI SDK (messages, streaming, embeddings) in Next.js
+---
+# AI SDK Usage Rules
+
+- Prefer `@ai-sdk/react` hooks in Client Components and `ai` core in Route Handlers.
+- UI message shape: `{ id: string, role: 'user'|'assistant'|'system', parts: Array<{ type: 'text', text: string }> }`.
+- Convert incoming UI messages in routes with `convertToCoreMessages(messages)`.
+- Non-streaming responses: `generateText({ model, system, messages })` then `return new Response(result.text)`.
+- Streaming responses: `streamText({ model, system, messages })` and `return result.toTextStreamResponse()`.
+- Embeddings: `embed({ model: openai.textEmbeddingModel('text-embedding-3-small'), value })`.
+- Abort and timeouts: pass `signal` to `fetch` in client; prefer `AbortController` for Stop.
+- Do not leak secrets to Client Components; load models only in routes/server.
+
+## Minimal Route Example (text)
+```ts
+import { openai } from '@ai-sdk/openai'
+import { generateText, convertToCoreMessages } from 'ai'
+
+export async function POST(req: Request) {
+  const { messages } = await req.json()
+  const result = await generateText({
+    model: openai('gpt-4o-mini'),
+    system: 'You are a helpful assistant.',
+    messages: convertToCoreMessages(messages),
+  })
+  return new Response(result.text, { headers: { 'Content-Type': 'text/plain; charset=utf-8' } })
+}
+```
+
+## Client Hook (manual transport)
+```tsx
+import { useChat, type UIMessage } from '@ai-sdk/react'
+
+const chat = useChat({ id: 'session' })
+// Update with setMessages([...messages, { role:'user', parts:[{type:'text', text:'hi'}]} ])
+// POST to /api/chat with { messages } and write streamed/plain text into assistant message.
+```

@@ -1,0 +1,163 @@
+---
+description: Core SkyMarket architecture and development standards for Next.js 14 + TypeScript
+globs: []
+alwaysApply: true
+---
+
+# SkyMarket Core Architecture Rules
+
+## Project Structure Standards
+
+- Use Next.js 14 App Router exclusively, no Pages Router
+- Organize files using the standard App Router structure:
+  ```
+  app/
+  ├── (auth)/          # Route groups for organization
+  ├── api/            # API routes
+  ├── dashboard/      # Protected dashboard routes
+  ├── globals.css     # Global styles
+  ├── layout.tsx      # Root layout
+  └── page.tsx        # Home page
+  ```
+- Place reusable components in `components/` directory
+- Use `lib/` for utility functions, configurations, and integrations
+- Store types in `types/` directory, organized by domain
+
+## TypeScript Standards
+
+- Enable strict mode in tsconfig.json
+- Use explicit types for all function parameters and return values
+- Define interfaces for all data structures, especially:
+  ```typescript
+  interface SkyMarketUser {
+    id: string;
+    role: 'consumer' | 'provider' | 'admin';
+    profile: UserProfile;
+    detroitZone?: DetroitZone; // Midtown, Downtown, etc.
+  }
+  ```
+- Use proper typing for Convex operations:
+  ```typescript
+  import { api } from '@/convex/_generated/api';
+  import { useQuery, useMutation } from 'convex/react';
+  ```
+
+## Next.js 14 App Router Patterns
+
+### Server Components (Default)
+- Use Server Components by default for better performance
+- Only use Client Components when necessary (user interactions, hooks)
+- Mark Client Components with `'use client'` directive at the top
+
+### Route Handlers
+- Place API routes in `app/api/` following RESTful conventions
+- Use proper HTTP methods (GET, POST, PUT, DELETE)
+- Always validate input data with Zod schemas
+- Return proper HTTP status codes
+
+### Layouts and Loading States
+- Use `layout.tsx` for shared layouts
+- Implement `loading.tsx` for loading states
+- Use `error.tsx` for error boundaries
+- Implement proper metadata for SEO
+
+## File Naming Conventions
+
+- Use kebab-case for directories: `booking-flow/`, `user-dashboard/`
+- Use PascalCase for React components: `BookingForm.tsx`, `UserProfile.tsx`
+- Use camelCase for utility functions: `calculateDistance.ts`, `formatPrice.ts`
+- Use SCREAMING_SNAKE_CASE for constants: `DETROIT_CENTER_COORDS`
+
+## Import Organization
+
+- Group imports in this order:
+  1. React and Next.js imports
+  2. Third-party library imports
+  3. Internal component imports
+  4. Internal utility imports
+  5. Type imports (using `import type`)
+
+Example:
+```typescript
+import { Suspense } from 'react';
+import { Metadata } from 'next/js';
+import { Button } from '@/components/ui/button';
+import { formatCurrency } from '@/lib/utils';
+import type { BookingDetails } from '@/types/booking';
+```
+
+## Environment Variables
+
+- Use NEXT_PUBLIC_ prefix only for client-side variables
+- Store sensitive keys in server-side environment variables
+- Required environment variables for SkyMarket:
+  ```bash
+  NEXT_PUBLIC_CONVEX_URL=
+  CONVEX_DEPLOY_KEY=
+  STRIPE_SECRET_KEY=
+  NEXT_PUBLIC_MAPBOX_TOKEN=
+  OPENAI_API_KEY=
+  RESEND_API_KEY=
+  ```
+
+## Error Handling
+
+- Use try-catch blocks for all async operations
+- Create custom error classes for domain-specific errors:
+  ```typescript
+  class BookingError extends Error {
+    constructor(message: string, public code: string) {
+      super(message);
+      this.name = 'BookingError';
+    }
+  }
+  ```
+- Always provide user-friendly error messages
+- Log errors appropriately for debugging
+
+## Performance Standards
+
+- Use dynamic imports for large components
+- Implement proper image optimization with Next.js Image
+- Use React.memo() for expensive components
+- Implement proper caching strategies
+- Optimize bundle size by avoiding unnecessary imports
+
+## Security Practices
+
+- Never expose API keys in client-side code
+- Validate all user inputs
+- Use CSRF protection for forms
+- Implement proper authentication checks
+- Sanitize data before database operations
+
+- Use Detroit-specific neighborhoods in location validations
+- Default map center to Detroit downtown: `{ lat: 42.3314, lng: -83.0458 }`
+
+## Code Quality Standards
+
+- Use meaningful variable and function names
+- Write self-documenting code with clear logic
+- Keep functions small and focused (single responsibility)
+- Use early returns to reduce nesting
+- Implement proper TypeScript interfaces for all data structures
+- Write unit tests for critical business logic functions
+
+## Git Workflow Guidelines
+
+**Commit Strategy:**
+- Commit on every significant change (feature completion, bug fix, refactoring)
+- Use AI-assisted commit messages: `git commit -m "feat(auth): add Detroit ZIP validation"`
+- Never commit incomplete work; use `git stash` for temporary saves
+
+**Branch Management:**
+- Create new branch for each feature: `git checkout -b feature/detroit-map-integration`
+- Use descriptive branch names: `feature/`, `fix/`, `refactor/` prefixes
+- Keep feature branches small and focused on single functionality
+- Rebase feature branches onto main before merging: `git rebase main`
+
+**Sync Policy:**
+- Always work locally unless explicitly requested to push
+- Never force push to shared branches
+- Use pull requests for code review before merging to main
+- Tag releases with semantic versioning: `git tag v1.0.0`

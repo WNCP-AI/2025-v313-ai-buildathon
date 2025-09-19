@@ -1,0 +1,14 @@
+---
+description: Supabase schema, types, and usage
+---
+## Supabase
+
+- DB schema lives in [`supabase/schema.sql`](mdc:supabase/schema.sql)
+- Migrations in `supabase/migrations/*`; prefer migrations over direct schema edits
+- Generated types: [`types/database.ts`](mdc:types/database.ts) with `Database` types for `profiles`, `providers`, `listings`, `bookings`
+- Use `@supabase/ssr` for server-side clients in Next `app/*`
+
+Guidelines:
+- Never hardcode table/column names; use `Database['public']['Tables']['table'].Row`
+- Keep RLS policies in SQL migrations; do not bypass on client
+- For server actions/route handlers, create a service layer for DB access
