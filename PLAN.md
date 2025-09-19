@@ -21,32 +21,93 @@ This document outlines the Git repository mapping strategy for the V313 2025 AI 
 | `./Beginner Track/Beginner Track Demo Code/` | `git subtree add --prefix="Beginner Track/Beginner Track Demo Code" https://github.com/WNCP-AI/skymarket-beginner-demo-wncp.git main --squash` |
 | `./Beginner Track/Beginner Track Instuctions/` | `git subtree add --prefix="Beginner Track/Beginner Track Instuctions" https://github.com/WNCP-AI/tutorial-wncp-ai-beginner-skymarket.git main --squash` |
 | `./Developer + Expert Track/Developer + Expert Demo Code/` | `git subtree add --prefix="Developer + Expert Track/Developer + Expert Demo Code" https://github.com/WNCP-AI/skymarket-supabase.git main --squash` |
-| `./Developer + Expert Track/Developer Track Instructions/` | `git subtree add --prefix="Developer + Expert Track/Developer Track Instructions" https://github.com/WNCP-AI/skymarket-instructions.git main --squash` |
-| `./Developer + Expert Track/Expert Track Instruction/` | `git subtree add --prefix="Developer + Expert Track/Expert Track Instruction" https://github.com/WNCP-AI/skymarket-instructions.git main --squash` |
-| `./General Resources/` | `git subtree add --prefix="General Resources" https://github.com/WNCP-AI/tutorial-wncp-ai-beginner-skymarket.git main --squash` |
+| `./Developer + Expert Track/Developer Track Instructions/` | see split-based subpath import below |
+| `./Developer + Expert Track/Expert Track Instruction/` | see split-based subpath import below |
+| `./General Resources/` | see split-based subpath import below |
 
 ## Git Subtree Setup Instructions
 
-### Initial Setup
+### Initial Setup (root-mapped subtrees)
 Execute these commands in sequence from the repository root:
 
 ```bash
 git subtree add --prefix="Beginner Track/Beginner Track Demo Code" https://github.com/WNCP-AI/skymarket-beginner-demo-wncp.git main --squash
 git subtree add --prefix="Beginner Track/Beginner Track Instuctions" https://github.com/WNCP-AI/tutorial-wncp-ai-beginner-skymarket.git main --squash
 git subtree add --prefix="Developer + Expert Track/Developer + Expert Demo Code" https://github.com/WNCP-AI/skymarket-supabase.git main --squash
-git subtree add --prefix="Developer + Expert Track/Developer Track Instructions" https://github.com/WNCP-AI/skymarket-instructions.git main --squash
-git subtree add --prefix="Developer + Expert Track/Expert Track Instruction" https://github.com/WNCP-AI/skymarket-instructions.git main --squash
-git subtree add --prefix="General Resources" https://github.com/WNCP-AI/tutorial-wncp-ai-beginner-skymarket.git main --squash
+# Note: The following three require subpath imports (see next section):
+# - Developer + Expert Track/Developer Track Instructions  (tracks/developer)
+# - Developer + Expert Track/Expert Track Instruction      (tracks/expert)
+# - General Resources                                      (resources)
+```
+
+### Split-based subpath imports (recommended)
+Some upstream repositories need only a specific subfolder (subpath). Since `git subtree` cannot directly import a remote subdirectory, use a temporary local clone to create a split branch for the subpath, then add that split as a subtree.
+
+Run from repository root. The `.tmp/` folder can be ignored/removed anytime.
+
+```bash
+# 1) Developer Track Instructions (from skymarket-instructions: tracks/developer)
+mkdir -p .tmp && cd .tmp
+if [ ! -d skymarket-instructions ]; then \
+  git clone --depth=1 --no-tags https://github.com/WNCP-AI/skymarket-instructions.git skymarket-instructions; \
+fi
+cd skymarket-instructions
+git subtree split --prefix=tracks/developer -b split-developer
+cd ../..
+git subtree add --prefix="Developer + Expert Track/Developer Track Instructions" \
+  ./.tmp/skymarket-instructions split-developer --squash
+
+# 2) Expert Track Instruction (from skymarket-instructions: tracks/expert)
+cd .tmp/skymarket-instructions
+git subtree split --prefix=tracks/expert -b split-expert
+cd ../..
+git subtree add --prefix="Developer + Expert Track/Expert Track Instruction" \
+  ./.tmp/skymarket-instructions split-expert --squash
+
+# 3) General Resources (from tutorial-wncp-ai-beginner-skymarket: resources)
+cd .tmp
+if [ ! -d tutorial-wncp-ai-beginner-skymarket ]; then \
+  git clone --depth=1 --no-tags https://github.com/WNCP-AI/tutorial-wncp-ai-beginner-skymarket.git tutorial-wncp-ai-beginner-skymarket; \
+fi
+cd tutorial-wncp-ai-beginner-skymarket
+git subtree split --prefix=resources -b split-resources
+cd ../..
+git subtree add --prefix="General Resources" \
+  ./.tmp/tutorial-wncp-ai-beginner-skymarket split-resources --squash
 ```
 
 ### Update Commands
 Update specific subtrees:
 
 ```bash
-git subtree pull --prefix="Beginner Track/Beginner Track Instuctions" https://github.com/WNCP-AI/tutorial-wncp-ai-beginner-skymarket.git main --squash
-git subtree pull --prefix="Developer + Expert Track/Developer Track Instructions" https://github.com/WNCP-AI/skymarket-instructions.git main --squash
-git subtree pull --prefix="Developer + Expert Track/Expert Track Instruction" https://github.com/WNCP-AI/skymarket-instructions.git main --squash
-git subtree pull --prefix="General Resources" https://github.com/WNCP-AI/tutorial-wncp-ai-beginner-skymarket.git main --squash
+# Root-mapped subtrees:
+git subtree pull --prefix="Beginner Track/Beginner Track Instuctions" \
+  https://github.com/WNCP-AI/tutorial-wncp-ai-beginner-skymarket.git main --squash
+
+# Subpath-mapped subtrees (recreate local splits, then pull):
+# Developer Track Instructions
+cd .tmp/skymarket-instructions && git fetch --depth=1 origin main && \
+  git checkout main && git reset --hard origin/main && \
+  git branch -D split-developer 2>/dev/null || true && \
+  git subtree split --prefix=tracks/developer -b split-developer && cd ../..
+git subtree pull --prefix="Developer + Expert Track/Developer Track Instructions" \
+  ./.tmp/skymarket-instructions split-developer --squash
+
+# Expert Track Instruction
+cd .tmp/skymarket-instructions && git fetch --depth=1 origin main && \
+  git checkout main && git reset --hard origin/main && \
+  git branch -D split-expert 2>/dev/null || true && \
+  git subtree split --prefix=tracks/expert -b split-expert && cd ../..
+git subtree pull --prefix="Developer + Expert Track/Expert Track Instruction" \
+  ./.tmp/skymarket-instructions split-expert --squash
+
+# General Resources
+cd .tmp/tutorial-wncp-ai-beginner-skymarket && git fetch --depth=1 origin main && \
+  git checkout main && git reset --hard origin/main && \
+  git branch -D split-resources 2>/dev/null || true && \
+  git subtree split --prefix=resources -b split-resources && cd ../..
+git subtree pull --prefix="General Resources" \
+  ./.tmp/tutorial-wncp-ai-beginner-skymarket split-resources --squash
 ```
 
 ## Repository Structure Notes
@@ -57,9 +118,11 @@ git subtree pull --prefix="General Resources" https://github.com/WNCP-AI/tutoria
 - Avoid spaces in repository names (use hyphens instead)
 
 ### Subtree Path Considerations
-- All current subtrees map to the root (`/`) of their respective repositories
-- If specific folders within repositories need to be mapped, update the "Subtree Path" column
-- Consider using Git subtree with specific paths for large repositories with folder-specific requirements
+- Some subtrees map to the root (`/`) of their repositories (Beginner Demo Code, Advanced Demo Code)
+- Others intentionally map to specific subfolders via split-based imports:
+  - `skymarket-instructions` → `/tracks/developer` and `/tracks/expert`
+  - `tutorial-wncp-ai-beginner-skymarket` → `/resources`
+- Use the split-based workflow above to add or update subpath-mapped subtrees reliably
 
 ### Repository Organization
 - **Resources Management**: The `resources/` folder is managed as a separate subtree in `./General Resources/` for better organization
