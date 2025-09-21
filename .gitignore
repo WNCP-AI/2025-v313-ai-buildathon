@@ -17,9 +17,9 @@
 *.log
 
 # Documentation artifacts (ignore across subfolders)
-CLAUDE.md
-PLAN.md
-.claude/
+**.*CLAUDE.md
+**.*PLAN.md
+**.*claude/*
 
 # Node modules (if any JavaScript projects are added)
 node_modules/
